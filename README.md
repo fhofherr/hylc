@@ -35,6 +35,13 @@ messages to the end user.
 `hylc` is packaged as a Docker image. It is not yet available on docker
 hub. Users must build the image themselves using `make image`.
 
+## Develop
+
+`hylc` comes with a [self documenting
+Makefile](https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html)
+which contains all targets necessary for development. Call `make help`
+for details.
+
 ## License
 
 Copyright © 2019 Ferdinand Hofherr
