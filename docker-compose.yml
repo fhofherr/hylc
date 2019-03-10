@@ -1,0 +1,45 @@
+---
+version: "3.7"
+services:
+
+  db:
+    image: postgres:11.2-alpine
+    environment:
+      - POSTGRES_PASSWORD
+      - HYDRA_DB_USER
+      - HYDRA_DB_NAME
+      - HYDRA_DB_PASS
+      - HYLC_DB_USER
+      - HYLC_DB_NAME
+      - HYLC_DB_PASS
+    volumes:
+      - type: bind
+        source: ./pkg/db/scripts/docker-entrypoint-initdb.d
+        target: /docker-entrypoint-initdb.d
+
+  hydra_migrate:
+    image: oryd/hydra:v1.0.0-rc.6_oryOS.10-alpine
+    environment:
+      SYSTEM_SECRET: "${HYDRA_SYSTEM_SECRET}"
+      DATABASE_URL: "postgres://${HYDRA_DB_USER}:${HYDRA_DB_PASS}@db/${HYDRA_DB_NAME}?sslmode=disable"
+    command: migrate sql --read-from-env
+    depends_on:
+      - db
+
+  hydra:
+    image: oryd/hydra:v1.0.0-rc.6_oryOS.10-alpine
+    environment:
+      SYSTEM_SECRET: "${HYDRA_SYSTEM_SECRET}"
+      DATABASE_URL: "postgres://${HYDRA_DB_USER}:${HYDRA_DB_PASS}@db/${HYDRA_DB_NAME}?sslmode=disable"
+    command: serve all --dangerous-force-http
+    depends_on:
+      - db
+      - hydra_migrate
+
+  hylc:
+    build: .
+    environment:
+      DATABASE_URL: "postgres://${HYLC_DB_USER}:${HYLC_DB_PASS}@db/${HYLC_DB_NAME}?sslmode=disable"
+    depends_on:
+      - db
+      - hydra

@@ -22,6 +22,18 @@ image:
 		--build-arg build_time=$(BUILD_TIME)\
 		.
 
+.env:
+	./scripts/build/make-test-env.sh .env
+
+.PHONY: start-test-system
+start-test-system: .env  ## Start a test system using docker-compose
+	docker-compose up --build
+
+.PHONY: stop-test-system
+stop-test-system:  ## Stop the previously started test system
+	docker-compose kill
+	docker-compose rm -f
+
 .PHONY: help
 help: ## Display this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
