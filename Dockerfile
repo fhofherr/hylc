@@ -1,25 +1,34 @@
-FROM golang:1.12.0-alpine3.9 as go-build
+# Based on https://github.com/chemidy/smallest-secured-golang-docker-image
+
+FROM golang:1.12.1-alpine3.9 as gobuilder
 
 ARG git_tag
 ARG git_hash
 ARG build_time
 
-RUN adduser -D go-build
-WORKDIR /home/go-build
-COPY --chown=go-build:go-build . .
+# Install git + SSL ca certificates.
+# Git is required for fetching the dependencies.
+# Ca-certificates is required to call HTTPS endpoints.
+RUN apk add --no-cache git build-base ca-certificates tzdata
+RUN update-ca-certificates
 
-USER go-build
+RUN adduser -D -g '' -h /opt/app app
+WORKDIR /opt/app
+COPY --chown=app:app . .
+
+USER app
 RUN go mod verify
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build\
-    -ldflags "-s -X github.com/fhofherr/hylc/cmd.GitHash=$git_hash -X github.com/fhofherr/hylc/cmd.Version=$git_tag -X github.com/fhofherr/hylc/cmd.BuildTime=$build_time"\
-    -a\
-    -o hylc\
-    .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 make hylc GIT_TAG=$git_tag GIT_HASH=$git_hash BUILD_TIME=$build_time
 
-FROM alpine:3.9 as run
-RUN adduser -D hylc
-WORKDIR /home/hylc
-COPY --from=go-build --chown=hylc:hylc /home/go-build/hylc .
+FROM scratch
+COPY --from=gobuilder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=gobuilder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=gobuilder /etc/passwd /etc/passwd
 
-USER hylc
-ENTRYPOINT ["./hylc"]
+COPY --from=gobuilder /opt/app/hylc /opt/app/hylc
+
+USER app
+WORKDIR /opt/app
+
+ENTRYPOINT ["/opt/app/hylc"]
+CMD ["serve"]
