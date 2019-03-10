@@ -14,17 +14,18 @@ useful login and consent provider for Hydra.
 ### Login Provider
 
 `hylc` serves as a login provider for Hydra. The login functionality is
-available under the `/login` path.
+available under the `/ui/login` path.
 
 ### Consent Provider
 
 `hylc` serves as a login provider for Hydra. The login functionality is
-available under the `/consent` path.
+available under the `/ui/consent` path.
 
 ### Error Endpoint
 
 `hylc` provides an error endpoint which displays login related error
-messages to the end user.
+messages to the end user. The error endpoint is available under the
+`/ui/error` path.
 
 ### User management
 

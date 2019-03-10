@@ -1,8 +1,8 @@
-package cmd
+package build
 
 var (
-	// BuildTime is the time this version of hylc was built.
-	BuildTime string
+	// Time is the time this version of hylc was built.
+	Time string
 	// GitHash is the git commit hash of this version of hylc.
 	GitHash string
 	// Version is the git tag of this version of hylc. It may be empty
