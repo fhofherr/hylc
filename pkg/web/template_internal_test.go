@@ -52,7 +52,7 @@ func TestUseDefaultTemplateDirectory(t *testing.T) {
 	}
 	expectedPath := filepath.Join(DefaultTemplateDirectory, "missing.html")
 	err := renderer.execute(&buf, nil)
-	// We expect an error here since the DefaultTemplateDirector is not
+	// We expect an error here since the DefaultTemplateDirectory is not
 	// reachable from within the execution directory of the tests.
 	assert.Error(t, err)
 	assert.Equal(t, expectedPath, renderer.templatePath)
@@ -71,6 +71,34 @@ func TestRenderTemplateWriteFails(t *testing.T) {
 
 	err := renderer.execute(w, nil)
 	assert.Error(t, expectedErr, errors.Cause(err))
+}
+
+func TestFindLayouts(t *testing.T) {
+	tests := []struct {
+		name          string
+		layoutsDir    string
+		expected      []string
+		errorExpected bool
+	}{
+		{"missing layout dir", "testdata/missingdir", nil, true},
+		{"empty layout dir", "testdata/empty", nil, true},
+		{
+			name:          "layout dir",
+			layoutsDir:    "testdata/template/layout",
+			expected:      []string{"testdata/template/layout/base.html"},
+			errorExpected: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			layouts, err := findLayouts(tt.layoutsDir)
+			if !tt.errorExpected && err != nil {
+				t.Fatal(err)
+			}
+			assert.Equal(t, tt.expected, layouts)
+			assert.Equal(t, tt.errorExpected, err != nil, "error expected but got nil")
+		})
+	}
 }
 
 type mockWriter struct {

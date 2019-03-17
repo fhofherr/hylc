@@ -1,0 +1,2 @@
+This file is not a layout file. It should this be ignored by findLayouts,
+and not show up in any test results.

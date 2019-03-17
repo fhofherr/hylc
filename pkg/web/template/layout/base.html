@@ -1,0 +1,14 @@
+{{ define "base"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ .PageTitle }}</title>
+</head>
+<body>
+
+{{ block "content" . }}{{ end }}
+
+</body>
+</html>
+{{ end }}
