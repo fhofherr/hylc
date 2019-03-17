@@ -27,6 +27,9 @@ COPY --from=gobuilder /etc/passwd /etc/passwd
 
 COPY --from=gobuilder /opt/app/hylc /opt/app/hylc
 
+# TODO use a better directory once issue #4 is resolved.
+COPY pkg/web/template /opt/app/pkg/web/template
+
 USER app
 WORKDIR /opt/app
 
