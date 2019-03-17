@@ -20,7 +20,8 @@ func NewPublicRouter(cfg PublicRouterConfig) http.Handler {
 
 	login := router.PathPrefix("/login").Subrouter()
 	login.Methods(http.MethodGet).Handler(&renderLoginPageHandler{
-		logger: cfg.Logger,
+		Logger:      cfg.Logger,
+		LoginAction: "/login",
 		renderer: &templateRenderer{
 			Filename:    "login.html",
 			TemplateDir: cfg.TemplateDir,
