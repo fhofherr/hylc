@@ -11,7 +11,7 @@ import (
 type renderLoginPageHandler struct {
 	Logger      log.Logger
 	LoginAction string
-	renderer    *templateRenderer
+	Renderer    *templateRenderer
 }
 
 func (h *renderLoginPageHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -41,7 +41,7 @@ func (h *renderLoginPageHandler) renderLoginPage(w http.ResponseWriter, req *htt
 		PasswordLabel:       "Password",
 		SubmitButtonLabel:   "Login",
 	}
-	err := h.renderer.execute(w, model)
+	err := h.Renderer.execute(w, model)
 	if err != nil {
 		log.Log(h.Logger,
 			"level", "error",

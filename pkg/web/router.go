@@ -22,7 +22,7 @@ func NewPublicRouter(cfg PublicRouterConfig) http.Handler {
 	login.Methods(http.MethodGet).Handler(&renderLoginPageHandler{
 		Logger:      cfg.Logger,
 		LoginAction: "/login",
-		renderer: &templateRenderer{
+		Renderer: &templateRenderer{
 			Filename:    "login.html",
 			TemplateDir: cfg.TemplateDir,
 		},
