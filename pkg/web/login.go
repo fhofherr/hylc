@@ -1,20 +1,20 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/fhofherr/golf/log"
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
 )
 
 type renderLoginPageHandler struct {
-	Logger      *zap.Logger
+	Logger      log.Logger
 	LoginAction string
 	renderer    *templateRenderer
 }
 
 func (h *renderLoginPageHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	logger := h.Logger.Sugar()
 	model := loginPageModel{
 		PageTitle:           "Login",
 		Title:               "Login",
@@ -26,7 +26,9 @@ func (h *renderLoginPageHandler) ServeHTTP(w http.ResponseWriter, req *http.Requ
 	}
 	err := h.renderer.execute(w, model)
 	if err != nil {
-		logger.Errorf("%+v", errors.Wrap(err, "render login page"))
+		log.Log(h.Logger,
+			"level", "error",
+			"message", fmt.Sprintf("%+v", errors.Wrap(err, "render login page")))
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusInternalServerError)
 	}

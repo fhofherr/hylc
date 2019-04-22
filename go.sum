@@ -1,5 +1,9 @@
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/fhofherr/golf v0.1.0 h1:bgPHBzMRCevpdu4FXuhPgX8GG7N7A+Mj54T0Wj2YnBE=
+github.com/fhofherr/golf v0.1.0/go.mod h1:1clLXrtWUQkqREmiMPnkd94Jeu1T5UwVOo4DTAcVUTM=
+github.com/fhofherr/golf-zap v0.1.0 h1:7Xjhb9H/B3dMXJn61N0ZZX8gMBPYJNUbu9vWrULZ7Lw=
+github.com/fhofherr/golf-zap v0.1.0/go.mod h1:jCZBtyzENVeElauziG6WeIdu4AfMpwJ2LFUxJhBo5Yo=
 github.com/gorilla/mux v1.7.0 h1:tOSd0UKHQd6urX6ApfOn4XdBMY6Sh1MfxV3kmaazO+U=
 github.com/gorilla/mux v1.7.0/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
 github.com/inconshreveable/mousetrap v1.0.0 h1:Z8tu5sraLXCXIcARxBp/8cbvlwVa7Z1NHg9XEKhtSvM=

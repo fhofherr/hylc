@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/fhofherr/golf/log"
 	"github.com/fhofherr/hylc/pkg/web"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 func TestRenderLoginPageHandler(t *testing.T) {
@@ -20,7 +20,7 @@ func TestRenderLoginPageHandler(t *testing.T) {
 		{
 			name: "render login page",
 			cfg: web.PublicRouterConfig{
-				Logger:      zap.NewNop(),
+				Logger:      log.NewNOPLogger(),
 				TemplateDir: "./template",
 			},
 			statusCode: http.StatusOK,
@@ -31,7 +31,7 @@ func TestRenderLoginPageHandler(t *testing.T) {
 		{
 			name: "rendering error",
 			cfg: web.PublicRouterConfig{
-				Logger:      zap.NewNop(),
+				Logger:      log.NewNOPLogger(),
 				TemplateDir: "./missing-template-dir",
 			},
 			statusCode: http.StatusInternalServerError,

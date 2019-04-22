@@ -3,13 +3,13 @@ package web
 import (
 	"net/http"
 
+	"github.com/fhofherr/golf/log"
 	"github.com/gorilla/mux"
-	"go.uber.org/zap"
 )
 
 // PublicRouterConfig configures the public router.
 type PublicRouterConfig struct {
-	Logger      *zap.Logger
+	Logger      log.Logger
 	TemplateDir string
 }
 
