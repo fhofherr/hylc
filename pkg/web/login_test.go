@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,6 +16,7 @@ func TestRenderLoginPageHandler(t *testing.T) {
 		name       string
 		cfg        web.PublicRouterConfig
 		statusCode int
+		challenge  string
 		bodyPred   func(*testing.T, string)
 	}{
 		{
@@ -23,6 +25,7 @@ func TestRenderLoginPageHandler(t *testing.T) {
 				Logger:      log.NewNOPLogger(),
 				TemplateDir: "./template",
 			},
+			challenge:  "12345",
 			statusCode: http.StatusOK,
 			bodyPred: func(t *testing.T, body string) {
 				assert.Contains(t, body, `id="login"`)
@@ -34,15 +37,33 @@ func TestRenderLoginPageHandler(t *testing.T) {
 				Logger:      log.NewNOPLogger(),
 				TemplateDir: "./missing-template-dir",
 			},
+			challenge:  "54321",
 			statusCode: http.StatusInternalServerError,
-			bodyPred:   func(t *testing.T, s string) {},
+			bodyPred: func(t *testing.T, body string) {
+				assert.Contains(t, body, "Internal server error")
+			},
+		},
+		{
+			name: "missing login_challenge parameter",
+			cfg: web.PublicRouterConfig{
+				Logger:      log.NewNOPLogger(),
+				TemplateDir: "./template",
+			},
+			statusCode: http.StatusBadRequest,
+			bodyPred: func(t *testing.T, body string) {
+				assert.Contains(t, body, "Missing login_challenge parameter")
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := web.NewPublicRouter(tt.cfg)
 
-			req := httptest.NewRequest(http.MethodGet, "/login", nil)
+			path := "/login"
+			if tt.challenge != "" {
+				path = fmt.Sprintf("%s?login_challenge=%s", path, tt.challenge)
+			}
+			req := httptest.NewRequest(http.MethodGet, path, nil)
 			rr := httptest.NewRecorder()
 
 			handler.ServeHTTP(rr, req)

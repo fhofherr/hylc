@@ -15,6 +15,23 @@ type renderLoginPageHandler struct {
 }
 
 func (h *renderLoginPageHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	query := req.URL.Query()
+	_, ok := query["login_challenge"]
+	if !ok {
+		h.renderMissingChallenge(w, req)
+		return
+	}
+	h.renderLoginPage(w, req)
+}
+
+func (h *renderLoginPageHandler) renderMissingChallenge(w http.ResponseWriter, req *http.Request) {
+	log.Log(h.Logger, "level", "info", "message", "/login called without login_challenge")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusBadRequest)
+	_, _ = w.Write([]byte("Missing login_challenge parameter"))
+}
+
+func (h *renderLoginPageHandler) renderLoginPage(w http.ResponseWriter, req *http.Request) {
 	model := loginPageModel{
 		PageTitle:           "Login",
 		Title:               "Login",
@@ -31,6 +48,7 @@ func (h *renderLoginPageHandler) ServeHTTP(w http.ResponseWriter, req *http.Requ
 			"message", fmt.Sprintf("%+v", errors.Wrap(err, "render login page")))
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte("Internal server error"))
 	}
 }
 
