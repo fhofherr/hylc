@@ -1,7 +1,6 @@
 package web
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 
@@ -22,45 +21,37 @@ type Loginer interface {
 	Login(challenge, username, password string) (*url.URL, error)
 }
 
-type renderLoginPageHandler struct {
-	Logger      log.Logger
+type loginPageHandler struct {
+	baseHandler
 	LoginAction string
-	Renderer    *templateRenderer
 	Loginer     Loginer
 }
 
-func (h *renderLoginPageHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (h *loginPageHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	query := req.URL.Query()
 	challenge, ok := query["login_challenge"]
 	if !ok || len(challenge) != 1 {
-		h.renderMissingChallenge(w, req)
+		h.missingChallenge(w, req)
 		return
 	}
 	redirectUrl, err := h.Loginer.Login(challenge[0], "", "")
 	if isLoginRequired(err) {
-		h.renderLoginPage(w, req)
+		h.loginPage(w, req)
 		return
 	}
 	if err != nil {
-		log.Log(h.Logger,
-			"level", "error",
-			"message", fmt.Sprintf("%+v", errors.Wrap(err, "login error")))
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte("Internal server error"))
+		h.internalServerError(errors.Wrap(err, "login error"), w, req)
 		return
 	}
 	http.Redirect(w, req, redirectUrl.String(), http.StatusFound)
 }
 
-func (h *renderLoginPageHandler) renderMissingChallenge(w http.ResponseWriter, req *http.Request) {
+func (h *loginPageHandler) missingChallenge(w http.ResponseWriter, req *http.Request) {
 	log.Log(h.Logger, "level", "info", "message", "/login called without login_challenge")
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusBadRequest)
-	_, _ = w.Write([]byte("Missing login_challenge parameter"))
+	h.badRequest("Missing login_challenge parameter", w, req)
 }
 
-func (h *renderLoginPageHandler) renderLoginPage(w http.ResponseWriter, req *http.Request) {
+func (h *loginPageHandler) loginPage(w http.ResponseWriter, req *http.Request) {
 	model := loginPageModel{
 		PageTitle:           "Login",
 		Title:               "Login",
@@ -72,12 +63,7 @@ func (h *renderLoginPageHandler) renderLoginPage(w http.ResponseWriter, req *htt
 	}
 	err := h.Renderer.Render(w, "login.html", model)
 	if err != nil {
-		log.Log(h.Logger,
-			"level", "error",
-			"message", fmt.Sprintf("%+v", errors.Wrap(err, "render login page")))
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte("Internal server error"))
+		h.internalServerError(errors.Wrap(err, "render login page"), w, req)
 	}
 }
 

@@ -18,15 +18,17 @@ type PublicRouterConfig struct {
 // available routes.
 func NewPublicRouter(cfg PublicRouterConfig) http.Handler {
 	router := mux.NewRouter()
-
-	login := router.PathPrefix("/login").Subrouter()
-	login.Methods(http.MethodGet).Handler(&renderLoginPageHandler{
-		Logger:      cfg.Logger,
-		LoginAction: "/login",
-		Loginer:     cfg.Loginer,
+	bh := baseHandler{
+		Logger: cfg.Logger,
 		Renderer: &templateRenderer{
 			TemplateDir: cfg.TemplateDir,
 		},
+	}
+	login := router.PathPrefix("/login").Subrouter()
+	login.Methods(http.MethodGet).Handler(&loginPageHandler{
+		baseHandler: bh,
+		LoginAction: "/login",
+		Loginer:     cfg.Loginer,
 	})
 
 	return router
