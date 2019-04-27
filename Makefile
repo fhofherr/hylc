@@ -17,6 +17,10 @@ test: ## Execute all tests and show a coverage summary
 coverageHTML: test ## Create HTML coverage report
 	go tool cover -html=coverage.out
 
+.PHONY: updateGoldenFiles
+updateGoldenFiles: ## Execute tests to update golden files
+	go test ./... -update
+
 hylc: test $(SRC_FILES) ## Build the hylc executable
 	go build\
 		-ldflags "-s -X github.com/fhofherr/hylc/build.GitHash=$(GIT_HASH) -X github.com/fhofherr/hylc/build.Version=$(GIT_TAG) -X github.com/fhofherr/hylc/build.Time=$(BUILD_TIME)"\

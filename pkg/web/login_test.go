@@ -1,9 +1,7 @@
 package web_test
 
 import (
-	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"testing"
 
@@ -15,121 +13,81 @@ import (
 
 func TestRenderLoginPageHandler(t *testing.T) {
 	tests := []struct {
-		name       string
-		statusCode int
-		challenge  string
-		loginURL   string
-		loginError error
-		bodyPred   func(*testing.T, string)
+		name           string
+		loginChallenge string
+		loginURL       *url.URL
+		loginErr       error
+		status         int
+		header         http.Header
 	}{
 		{
-			name:       "render login page",
-			challenge:  "12345",
-			statusCode: http.StatusOK,
-			loginError: mockLoginRequiredError{},
-			bodyPred: func(t *testing.T, body string) {
-				assert.Contains(t, body, `id="login"`)
-			},
+			name:           "redirect to login url",
+			loginChallenge: "12345",
+			loginURL:       web.MustParseURL(t, "https://login/successful"),
+			status:         http.StatusFound,
+			header:         web.NewHTTPHeader(t, "Location", "https://login/successful"),
 		},
 		{
-			name:       "render login page",
-			challenge:  "12345",
-			statusCode: http.StatusFound,
-			loginURL:   "https://login/successful",
-			bodyPred: func(t *testing.T, body string) {
-				assert.Contains(t, body, `id="login"`)
-			},
+			name:           "render login page",
+			loginChallenge: "12345",
+			loginErr:       mockLoginRequiredError{},
+			status:         http.StatusOK,
 		},
 		{
-			name:       "missing login_challenge parameter",
-			statusCode: http.StatusBadRequest,
-			bodyPred: func(t *testing.T, body string) {
-				assert.Contains(t, body, "Missing login_challenge parameter")
-			},
+			name:     "fail on missing login challenge",
+			loginURL: web.MustParseURL(t, "https://login/successful"),
+			status:   http.StatusBadRequest,
+		},
+		{
+			name:           "unexpected login error",
+			loginChallenge: "12345",
+			loginErr:       errors.New("something went wrong"),
+			status:         http.StatusInternalServerError,
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			loginURL := &url.URL{}
-			ml := &mockLoginer{}
-			if tt.loginURL != "" {
-				var err error
-				loginURL, err = url.Parse(tt.loginURL)
-				assert.NoError(t, err)
-			}
-			ml.On("Login", tt.challenge, "", "").
-				Return(loginURL, tt.loginError)
-
+			var values url.Values
+			ml := NewMockLoginer(t)
+			ml.On("Login", tt.loginChallenge, "", "").
+				Return(tt.loginURL, tt.loginErr)
 			cfg := web.PublicRouterConfig{
 				TemplateDir: "./template",
 				Loginer:     ml,
 			}
 			handler := web.NewPublicRouter(cfg)
-
-			path := "/login"
-			if tt.challenge != "" {
-				path = fmt.Sprintf("%s?login_challenge=%s", path, tt.challenge)
+			if tt.loginChallenge != "" {
+				values = web.NewURLValues(t, "login_challenge", tt.loginChallenge)
 			}
-			req := httptest.NewRequest(http.MethodGet, path, nil)
-			rr := httptest.NewRecorder()
-
-			handler.ServeHTTP(rr, req)
-
-			assert.Equal(t, tt.statusCode, rr.Code)
-			if tt.loginURL != "" {
-				assert.Equal(t, tt.loginURL, rr.Header().Get("Location"))
-			} else {
-				assert.Equal(t, "text/html; charset=utf-8", rr.Header().Get("Content-Type"))
-				tt.bodyPred(t, rr.Body.String())
-			}
+			header, body := web.AssertHTTP(
+				t, handler.ServeHTTP, http.MethodGet, "/login", values, nil, tt.status)
+			web.AssertHTTPGoldenFile(t, header, body)
 		})
 	}
-
 }
 
 func TestRenderLoginPageHandler_RenderingError(t *testing.T) {
-	ml := &mockLoginer{}
-	ml.Test(t)
-	cfg := web.PublicRouterConfig{
-		TemplateDir: "./missing-template-dir",
-		Loginer:     ml,
-	}
-	handler := web.NewPublicRouter(cfg)
-	path := "/login?login_challenge=12345"
-	req := httptest.NewRequest(http.MethodGet, path, nil)
-	rr := httptest.NewRecorder()
-
-	ml.On("Login", "12345", "", "").
+	ml := NewMockLoginer(t)
+	ml.On("Login", mock.Anything, mock.Anything, mock.Anything).
 		Return(nil, mockLoginRequiredError{})
-	handler.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
-	assert.Equal(t, "text/html; charset=utf-8", rr.Header().Get("Content-Type"))
-	assert.Contains(t, rr.Body.String(), "Internal server error")
-}
-
-func TestRenderLoginPageHandler_UnexpectedLoginError(t *testing.T) {
-	ml := &mockLoginer{}
-	ml.Test(t)
 	cfg := web.PublicRouterConfig{
 		TemplateDir: "./missing-template-dir",
 		Loginer:     ml,
 	}
 	handler := web.NewPublicRouter(cfg)
-	path := "/login?login_challenge=12345"
-	req := httptest.NewRequest(http.MethodGet, path, nil)
-	rr := httptest.NewRecorder()
-	ml.On("Login", "12345", "", "").
-		Return(nil, errors.New("something went wrong"))
-	handler.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
-	assert.Equal(t, "text/html; charset=utf-8", rr.Header().Get("Content-Type"))
-	assert.Contains(t, rr.Body.String(), "Internal server error")
+	values := web.NewURLValues(t, "login_challenge", "12345")
+	assert.HTTPError(t, handler.ServeHTTP, http.MethodGet, "/login", values)
 }
 
 type mockLoginer struct {
 	mock.Mock
+}
+
+func NewMockLoginer(t *testing.T) *mockLoginer {
+	ml := &mockLoginer{}
+	ml.Test(t)
+	return ml
 }
 
 func (ml *mockLoginer) Login(challenge, username, password string) (*url.URL, error) {
