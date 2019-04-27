@@ -10,6 +10,7 @@ import (
 // PublicRouterConfig configures the public router.
 type PublicRouterConfig struct {
 	Logger      log.Logger
+	Loginer     Loginer
 	TemplateDir string
 }
 
@@ -22,6 +23,7 @@ func NewPublicRouter(cfg PublicRouterConfig) http.Handler {
 	login.Methods(http.MethodGet).Handler(&renderLoginPageHandler{
 		Logger:      cfg.Logger,
 		LoginAction: "/login",
+		Loginer:     cfg.Loginer,
 		Renderer: &templateRenderer{
 			Filename:    "login.html",
 			TemplateDir: cfg.TemplateDir,
