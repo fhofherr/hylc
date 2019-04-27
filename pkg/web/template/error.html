@@ -1,0 +1,7 @@
+{{ template "base" . }}
+{{ define "content" }}
+  <div id="error">
+    <h1>HTTP Error {{ .Status }} - {{ .StatusText }}</h1>
+    <p>{{ .Message }}</p>
+  </div>
+{{ end }}

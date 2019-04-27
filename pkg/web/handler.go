@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/fhofherr/golf/log"
+	"github.com/pkg/errors"
 )
 
 type baseHandler struct {
@@ -13,19 +14,47 @@ type baseHandler struct {
 }
 
 func (h *baseHandler) badRequest(msg string, w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusBadRequest)
-	_, err := w.Write([]byte(msg))
-	if err != nil {
-		log.Log(h.Logger, "level", "error", "message", fmt.Sprintf("%+v", err))
+	status := http.StatusBadRequest
+	statusText := http.StatusText(status)
+	model := errorModel{
+		PageTitle:  fmt.Sprintf("%d - %s", status, statusText),
+		Status:     status,
+		StatusText: statusText,
+		Message:    msg,
 	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	err := h.Renderer.Render(w, "error.html", model)
+	logError(h.Logger, errors.Wrap(err, "rendering error"))
 }
 
-func (h *baseHandler) internalServerError(err error, w http.ResponseWriter, req *http.Request) {
-	log.Log(h.Logger,
-		"level", "error",
-		"message", fmt.Sprintf("%+v", err))
+func (h *baseHandler) internalServerError(w http.ResponseWriter, req *http.Request) {
+	status := http.StatusInternalServerError
+	statusText := http.StatusText(status)
+	model := errorModel{
+		PageTitle:  fmt.Sprintf("%d - %s", status, statusText),
+		Status:     status,
+		StatusText: statusText,
+		Message:    statusText,
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusInternalServerError)
-	_, _ = w.Write([]byte("Internal server error"))
+	err := h.Renderer.Render(w, "error.html", model)
+	logError(h.Logger, errors.Wrap(err, "rendering error"))
+}
+
+type errorModel struct {
+	PageTitle  string
+	Status     int
+	StatusText string
+	Message    string
+}
+
+func logError(logger log.Logger, err error) {
+	if err == nil {
+		return
+	}
+	log.Log(logger,
+		"level", "error",
+		"message", fmt.Sprintf("%+v", err))
 }

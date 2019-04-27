@@ -40,7 +40,8 @@ func (h *loginPageHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if err != nil {
-		h.internalServerError(errors.Wrap(err, "login error"), w, req)
+		logError(h.Logger, errors.Wrap(err, "login error"))
+		h.internalServerError(w, req)
 		return
 	}
 	http.Redirect(w, req, redirectUrl.String(), http.StatusFound)
@@ -63,7 +64,8 @@ func (h *loginPageHandler) loginPage(w http.ResponseWriter, req *http.Request) {
 	}
 	err := h.Renderer.Render(w, "login.html", model)
 	if err != nil {
-		h.internalServerError(errors.Wrap(err, "render login page"), w, req)
+		logError(h.Logger, errors.Wrap(err, "render login page"))
+		h.internalServerError(w, req)
 	}
 }
 

@@ -87,7 +87,8 @@ func AssertHTTPGoldenFile(t *testing.T, header http.Header, body []byte) bool {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return assert.Equal(t, goldenHeader, header) && assert.Equal(t, goldenBody, body)
+	return assert.Equal(t, goldenHeader, header) &&
+		assert.Equal(t, string(goldenBody), string(body))
 }
 
 func writeHeaderAsJSON(t *testing.T, headerPath string, header http.Header) {
