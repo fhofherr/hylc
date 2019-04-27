@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 )
@@ -14,43 +15,84 @@ import (
 var DefaultTemplateDirectory = "./pkg/web/template"
 
 type templateRenderer struct {
-	TemplateDir  string
-	Filename     string
-	templatePath string
-	template     *template.Template
-	once         sync.Once
-	err          error
+	TemplateDir string
+	templates   map[string]*template.Template
+	layouts     []string
+	mu          sync.RWMutex
+	initialized uint32
 }
 
-func (r *templateRenderer) execute(w io.Writer, data interface{}) error {
-	r.once.Do(func() {
-		templateDir := r.TemplateDir
-		if templateDir == "" {
-			templateDir = DefaultTemplateDirectory
-		}
-		r.templatePath = filepath.Join(templateDir, r.Filename)
-		layoutDir := filepath.Join(templateDir, "layout")
-		layouts, err := findLayouts(layoutDir)
-		if err != nil {
-			r.err = errors.Wrap(err, "find layouts")
-			return
-		}
-		filenames := append([]string{r.templatePath}, layouts...)
-		tmpl, err := template.ParseFiles(filenames...)
-		if err != nil {
-			r.err = errors.Wrapf(err, "parse template file %s", r.templatePath)
-			return
-		}
-		r.template = tmpl
-	})
-	if r.err != nil {
-		return r.err
+// Render renders the template with the file name filename. If Render returns
+// an error the template was not rendered.
+func (r *templateRenderer) Render(w io.Writer, filename string, data interface{}) error {
+	if err := r.initialize(); err != nil {
+		return errors.Wrap(err, "initialize renderer")
 	}
-	err := r.template.Execute(w, data)
+	tmpl, ok := r.template(filename)
+	if !ok {
+		if err := r.loadTemplate(filename); err != nil {
+			return errors.Wrapf(err, "load template: %s", filename)
+		}
+		tmpl, _ = r.template(filename)
+	}
+	if err := tmpl.Execute(w, data); err != nil {
+		return errors.Wrapf(err, "Render template: %s", filename)
+	}
+	return nil
+}
+
+func (r *templateRenderer) initialize() error {
+	// Don't do anything if we have been initialized already.
+	if atomic.LoadUint32(&r.initialized) == 1 {
+		return nil
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	// Another go-routine has acquired the lock before us
+	// and initialized us. Abort.
+	if r.initialized == 1 {
+		return nil
+	}
+
+	r.templates = make(map[string]*template.Template)
+	if r.TemplateDir == "" {
+		r.TemplateDir = DefaultTemplateDirectory
+	}
+	layoutDir := filepath.Join(r.TemplateDir, "layout")
+	layouts, err := findLayouts(layoutDir)
 	if err != nil {
-		r.err = errors.Wrapf(err, "execute template %s", r.templatePath)
+		return errors.Wrap(err, "find layouts")
 	}
-	return r.err
+	r.layouts = layouts
+	r.initialized = 1
+	return nil
+}
+
+func (r *templateRenderer) template(filename string) (*template.Template, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	tmpl, ok := r.templates[filename]
+	return tmpl, ok
+}
+
+func (r *templateRenderer) loadTemplate(filename string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	// Another go-routine has loaded the template already. Abort.
+	if _, ok := r.templates[filename]; ok {
+		return nil
+	}
+
+	tmplPath := filepath.Join(r.TemplateDir, filename)
+	filenames := append([]string{tmplPath}, r.layouts...)
+	tmpl, err := template.ParseFiles(filenames...)
+	if err != nil {
+		return errors.Wrapf(err, "parse template file %s", tmplPath)
+	}
+	r.templates[filename] = tmpl
+	return nil
 }
 
 func findLayouts(layoutsDir string) ([]string, error) {

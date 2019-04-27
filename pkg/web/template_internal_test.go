@@ -2,7 +2,6 @@ package web
 
 import (
 	"bytes"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -31,15 +30,13 @@ func TestRenderTemplate(t *testing.T) {
 			var buf bytes.Buffer
 			renderer := &templateRenderer{
 				TemplateDir: "testdata/template",
-				Filename:    tt.filename,
 			}
 
-			err := renderer.execute(&buf, tt.data)
+			err := renderer.Render(&buf, tt.filename, tt.data)
 			if !tt.expectErr && err != nil {
 				t.Fatal(err)
 			}
 			assert.Equal(t, tt.expectErr, err != nil)
-			assert.Equal(t, err, renderer.err)
 			assert.Equal(t, tt.rendered, strings.TrimSpace(buf.String()))
 		})
 	}
@@ -47,15 +44,13 @@ func TestRenderTemplate(t *testing.T) {
 
 func TestUseDefaultTemplateDirectory(t *testing.T) {
 	var buf bytes.Buffer
-	renderer := &templateRenderer{
-		Filename: "missing.html",
-	}
-	expectedPath := filepath.Join(DefaultTemplateDirectory, "missing.html")
-	err := renderer.execute(&buf, nil)
+	filename := "missing.html"
+	renderer := &templateRenderer{}
+	err := renderer.Render(&buf, filename, nil)
 	// We expect an error here since the DefaultTemplateDirectory is not
 	// reachable from within the execution directory of the tests.
 	assert.Error(t, err)
-	assert.Equal(t, expectedPath, renderer.templatePath)
+	assert.Equal(t, DefaultTemplateDirectory, renderer.TemplateDir)
 }
 
 func TestRenderTemplateWriteFails(t *testing.T) {
@@ -64,12 +59,12 @@ func TestRenderTemplateWriteFails(t *testing.T) {
 	w.On("Write", mock.Anything).
 		Return(0, expectedErr)
 
+	filename := "empty.html"
 	renderer := &templateRenderer{
 		TemplateDir: "testdata/template",
-		Filename:    "empty.html",
 	}
 
-	err := renderer.execute(w, nil)
+	err := renderer.Render(w, filename, nil)
 	assert.Error(t, expectedErr, errors.Cause(err))
 }
 

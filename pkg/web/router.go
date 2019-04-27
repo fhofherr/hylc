@@ -25,7 +25,6 @@ func NewPublicRouter(cfg PublicRouterConfig) http.Handler {
 		LoginAction: "/login",
 		Loginer:     cfg.Loginer,
 		Renderer: &templateRenderer{
-			Filename:    "login.html",
 			TemplateDir: cfg.TemplateDir,
 		},
 	})

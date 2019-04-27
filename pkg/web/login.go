@@ -70,7 +70,7 @@ func (h *renderLoginPageHandler) renderLoginPage(w http.ResponseWriter, req *htt
 		PasswordLabel:       "Password",
 		SubmitButtonLabel:   "Login",
 	}
-	err := h.Renderer.execute(w, model)
+	err := h.Renderer.Render(w, "login.html", model)
 	if err != nil {
 		log.Log(h.Logger,
 			"level", "error",
